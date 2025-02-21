@@ -1,0 +1,4 @@
+# Ignore environment files
+*.env
+advisor_bot_backend/.env
+advisor_bot_frontend/.env
