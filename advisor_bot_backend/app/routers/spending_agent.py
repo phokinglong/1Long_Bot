@@ -1,63 +1,70 @@
-# advisor_bot_backend/app/routers/spending_agent.py
-
 import os
 import logging
 import openai
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
+
+from fastapi.responses import JSONResponse  # <-- We return JSONResponse
 from config.database import get_db
 from app.models.spending import Income, Expense
 from app.schemas.spending_schema import SpendingRequest
 
-router = APIRouter()
+load_dotenv()
 logging.basicConfig(level=logging.INFO)
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Example set of suggested prompts
+router = APIRouter()
+
+# Ví dụ về các gợi ý tiếp theo (trả về cho FE hiển thị, đã chuyển sang tiếng Việt)
 SUGGESTED_PROMPTS = {
-    "budgeting": "What's the best way to allocate my income for savings and spending?",
-    "cost_saving": "How can I reduce my monthly expenses while maintaining my lifestyle?",
-    "debt_management": "How should I prioritize paying off my debts while still saving money?",
-    "investment_tips": "Based on my spending, what percentage of my income should go into investments?",
+    "budgeting": "Làm thế nào để phân bổ thu nhập cho tiết kiệm và chi tiêu?",
+    "cost_saving": "Làm sao giảm chi phí hàng tháng mà vẫn giữ phong cách sống?",
+    "debt_management": "Nên ưu tiên trả nợ như thế nào trong khi vẫn tiết kiệm?",
+    "investment_tips": "Dựa trên chi tiêu, tôi nên đầu tư bao nhiêu phần trăm thu nhập?",
 }
 
 @router.post("/spending")
-def create_spending_plan(request: SpendingRequest, db: Session = Depends(get_db)):
+def create_spending_plan(
+    request: SpendingRequest,
+    db: Session = Depends(get_db)
+) -> JSONResponse:
     """
     POST /api/spending
-    Expects JSON:
+    Dữ liệu JSON cần:
     {
-        "monthly_income": 5000,
-        "expenses": [
-            {"category": "Rent", "amount": 1200},
-            {"category": "Groceries", "amount": 400},
-            ...
-        ]
+      "monthly_income": 5000,
+      "expenses": [
+        {"category": "Thuê nhà", "amount": 1200},
+        {"category": "Đi chợ", "amount": 400},
+        ...
+      ]
     }
-    Returns: {
-      "plan": "...AI-generated budget plan...",
+    Trả về:
+    {
+      "plan": "...Kế hoạch chi tiêu từ AI (tiếng Việt)...",
       "suggested_prompts": [...]
     }
     """
 
-    # 1. Check OpenAI key
+    # 1. Kiểm tra API key của OpenAI
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
-        logging.error("OpenAI API key is not set. Please check your environment variables.")
+        logging.error("Chưa thiết lập OpenAI API key. Vui lòng kiểm tra biến môi trường.")
         raise HTTPException(
             status_code=500,
-            detail="OpenAI API key is missing or invalid. Please contact support."
+            detail="Chưa có OpenAI API key hoặc không hợp lệ. Liên hệ hỗ trợ."
         )
 
     openai.api_key = openai_api_key
 
-    # 2. Save the Spending record
+    # 2. Lưu bản ghi Income (thu nhập)
     income_record = Income(monthly_income=request.monthly_income)
     db.add(income_record)
     db.commit()
     db.refresh(income_record)
 
-    # 3. Save each Expense
+    # 3. Lưu các khoản Expense (chi tiêu)
     for expense_item in request.expenses:
         expense_record = Expense(
             category=expense_item.category,
@@ -67,45 +74,52 @@ def create_spending_plan(request: SpendingRequest, db: Session = Depends(get_db)
         db.add(expense_record)
     db.commit()
 
-    # 4. Build the user message for OpenAI
-    user_expenses_str = "\n".join([f"- {e.category}: ${e.amount}" for e in request.expenses])
+    # 4. Xây dựng nội dung tin nhắn gửi OpenAI (tiếng Việt)
+    user_expenses_str = "\n".join([
+        f"- {e.category}: {e.amount} VNĐ" for e in request.expenses
+    ])
     user_message = (
-        f"My monthly income is ${request.monthly_income}, and here’s my expense breakdown:\n"
-        f"{user_expenses_str}\n\n"
-        "Based on this data, suggest a better spending strategy. Identify areas to cut back "
-        "and improve savings. Provide 2-3 actionable tips to optimize my budget."
+        f"Thu nhập hàng tháng của tôi là {request.monthly_income} VNĐ. "
+        f"Dưới đây là chi tiết các khoản chi tiêu:\n{user_expenses_str}\n\n"
+        "Dựa trên thông tin này, hãy đề xuất một kế hoạch chi tiêu hợp lý, "
+        "chỉ ra các khoản có thể cắt giảm và tối ưu hóa ngân sách. "
+        "Vui lòng trả lời hoàn toàn bằng tiếng Việt, kèm theo 2-3 gợi ý cụ thể."
     )
 
-    # 5. Call OpenAI
+    # 5. Gọi OpenAI (ChatCompletion) để lấy phản hồi (UTF-8 an toàn)
     try:
-
         response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+            model="gpt-4-turbo",  # hoặc "gpt-4" nếu có quyền truy cập
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "You are 'Cộng sự Chi tiêu', a personal finance assistant. "
-                        "Help users create a smarter budget by analyzing their income and spending. "
-                        "Suggest improvements, highlight potential savings, and provide cost-saving ideas."
+                        "Bạn là 'Cộng sự Chi tiêu', một trợ lý tài chính cá nhân. "
+                        "Luôn trả lời 100% bằng tiếng Việt, không dùng tiếng Anh."
                     )
                 },
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=500,
+            max_tokens=1000,
             temperature=0.7
         )
 
-        ai_reply = response.choices[0].message.content
+        # Encode+decode để đảm bảo UTF-8 hợp lệ
+        raw_reply = response.choices[0].message.content.strip()
+        ai_reply = raw_reply.encode("utf-8", "replace").decode("utf-8", "replace")
 
-        return {
-            "plan": ai_reply,
-            "suggested_prompts": list(SUGGESTED_PROMPTS.values())
-        }
+        # 6. Trả về JSONResponse (UTF-8)
+        return JSONResponse(
+            content={
+                "plan": ai_reply,
+                "suggested_prompts": list(SUGGESTED_PROMPTS.values())
+            },
+            media_type="application/json; charset=utf-8"
+        )
 
     except Exception as e:
-        logging.exception("OpenAI error occurred in create_spending_plan")
+        logging.exception("Đã xảy ra lỗi khi gọi OpenAI trong create_spending_plan")
         raise HTTPException(
             status_code=500,
-            detail="An error occurred while generating your spending plan."
+            detail="Có lỗi xảy ra khi tạo kế hoạch chi tiêu từ AI."
         ) from e

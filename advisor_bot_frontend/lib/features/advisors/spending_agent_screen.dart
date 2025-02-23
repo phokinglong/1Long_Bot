@@ -12,25 +12,27 @@ class SpendingAgentScreen extends StatefulWidget {
 
 class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
   final List<Map<String, dynamic>> _items = [];
-  final List<String> _typeOptions = ['Income', 'Expense'];
-  String _selectedType = 'Income';
+
+  // Đổi sang tiếng Việt
+  final List<String> _typeOptions = ['Thu nhập', 'Chi tiêu'];
+  String _selectedType = 'Thu nhập';
 
   final Map<String, List<Map<String, dynamic>>> _categoryMap = {
-    'Income': [
-      {"name": "Salary", "icon": Icons.monetization_on},
-      {"name": "Side Hustle", "icon": Icons.work},
-      {"name": "Passive Income", "icon": Icons.account_balance},
+    'Thu nhập': [
+      {"name": "Lương", "icon": Icons.monetization_on},
+      {"name": "Việc phụ", "icon": Icons.work},
+      {"name": "Thu nhập thụ động", "icon": Icons.account_balance},
     ],
-    'Expense': [
-      {"name": "Rent", "icon": Icons.home},
-      {"name": "Groceries", "icon": Icons.shopping_cart},
-      {"name": "Transportation", "icon": Icons.directions_car},
-      {"name": "Eating Out", "icon": Icons.restaurant},
-      {"name": "Shopping", "icon": Icons.shopping_bag},
-      {"name": "Entertainment", "icon": Icons.movie},
-      {"name": "Savings", "icon": Icons.savings},
-      {"name": "Investments", "icon": Icons.trending_up},
-      {"name": "Debt Payments", "icon": Icons.credit_card},
+    'Chi tiêu': [
+      {"name": "Thuê nhà", "icon": Icons.home},
+      {"name": "Đi chợ", "icon": Icons.shopping_cart},
+      {"name": "Đi lại", "icon": Icons.directions_car},
+      {"name": "Ăn ngoài", "icon": Icons.restaurant},
+      {"name": "Mua sắm", "icon": Icons.shopping_bag},
+      {"name": "Giải trí", "icon": Icons.movie},
+      {"name": "Tiết kiệm", "icon": Icons.savings},
+      {"name": "Đầu tư", "icon": Icons.trending_up},
+      {"name": "Trả nợ", "icon": Icons.credit_card},
     ],
   };
 
@@ -48,10 +50,9 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
 
   void _addItem() {
     final double? amount = double.tryParse(_amountController.text.trim());
-
     if (amount == null || amount <= 0 || _selectedCategory.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid category and amount.")),
+        const SnackBar(content: Text("Vui lòng nhập hạng mục và số tiền hợp lệ.")),
       );
       return;
     }
@@ -76,30 +77,34 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
   Future<void> _getSpendingPlan() async {
     if (_items.isEmpty) {
       setState(() {
-        _planResult = "Please add at least one income or expense.";
+        _planResult = "Vui lòng thêm ít nhất một khoản Thu nhập hoặc Chi tiêu.";
       });
       return;
     }
 
+    // Tính tổng Thu nhập
     final double monthlyIncome = _items
-        .where((item) => item["type"] == "Income")
+        .where((item) => item["type"] == "Thu nhập")
         .fold(0.0, (sum, item) => sum + (item["amount"] as double));
 
+    // Tập hợp tất cả các khoản Chi tiêu
     final expenses = _items
-        .where((item) => item["type"] == "Expense")
-        .map((item) => {"category": item["category"], "amount": item["amount"]})
+        .where((item) => item["type"] == "Chi tiêu")
+        .map((item) => {
+          "category": item["category"],
+          "amount": item["amount"],
+        })
         .toList();
 
     if (monthlyIncome <= 0) {
       setState(() {
-        _planResult = "Please add at least one valid income.";
+        _planResult = "Cần ít nhất một khoản Thu nhập hợp lệ.";
       });
       return;
     }
-
     if (expenses.isEmpty) {
       setState(() {
-        _planResult = "Please add at least one expense.";
+        _planResult = "Vui lòng thêm ít nhất một khoản Chi tiêu.";
       });
       return;
     }
@@ -111,23 +116,26 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
       final response = await http.post(
         apiUrl,
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"monthly_income": monthlyIncome, "expenses": expenses}),
+        body: json.encode({
+          "monthly_income": monthlyIncome,
+          "expenses": expenses,
+        }),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          _planResult = data["plan"] ?? "No plan returned.";
+          _planResult = data["plan"] ?? "Không nhận được kế hoạch từ AI.";
           _suggestedPrompts = List<String>.from(data["suggested_prompts"] ?? []);
         });
       } else {
         setState(() {
-          _planResult = "Server error: ${response.body}";
+          _planResult = "Lỗi máy chủ: ${response.body}";
         });
       }
     } catch (e) {
       setState(() {
-        _planResult = "Connection error: $e";
+        _planResult = "Lỗi kết nối: $e";
       });
     }
   }
@@ -135,7 +143,7 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ Standardized to lighter theme
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(widget.agentName, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -146,13 +154,14 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Dropdown chọn loại (Thu nhập/Chi tiêu) + Hạng mục
             Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedType,
-                    dropdownColor: Colors.white, // ✅ Light mode friendly
-                    style: const TextStyle(color: Colors.black), // ✅ Better contrast
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Colors.black),
                     items: _typeOptions.map((type) {
                       return DropdownMenuItem<String>(
                         value: type,
@@ -168,7 +177,7 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
                       }
                     },
                     decoration: const InputDecoration(
-                      labelText: "Type",
+                      labelText: "Loại",
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -193,7 +202,7 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
                       }
                     },
                     decoration: const InputDecoration(
-                      labelText: "Category",
+                      labelText: "Hạng mục",
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -201,6 +210,8 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
               ],
             ),
             const SizedBox(height: 16),
+
+            // Nhập số tiền + nút Thêm
             Row(
               children: [
                 Expanded(
@@ -208,7 +219,7 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
                     controller: _amountController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
-                      labelText: "Amount",
+                      labelText: "Số tiền (VNĐ)",
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -217,11 +228,13 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
                 ElevatedButton(
                   onPressed: _addItem,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                  child: const Text("Add", style: TextStyle(color: Colors.white)),
+                  child: const Text("Thêm", style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
             const SizedBox(height: 16),
+
+            // Danh sách các khoản
             if (_items.isNotEmpty)
               ListView.builder(
                 shrinkWrap: true,
@@ -230,24 +243,59 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
                 itemBuilder: (context, index) {
                   final item = _items[index];
                   return ListTile(
-                    leading: Icon(item["type"] == "Income" ? Icons.monetization_on : Icons.receipt_long),
-                    title: Text("${item["type"]}: ${item["category"]}", style: const TextStyle(color: Colors.black)),
-                    subtitle: Text("\$${item["amount"]}", style: const TextStyle(color: Colors.black87)),
-                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _removeItem(index)),
+                    leading: Icon(
+                      item["type"] == "Thu nhập"
+                          ? Icons.monetization_on
+                          : Icons.receipt_long
+                    ),
+                    title: Text(
+                      "${item["type"]}: ${item["category"]}",
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                    subtitle: Text(
+                      "${item["amount"]} VNĐ",
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _removeItem(index),
+                    ),
                   );
                 },
               ),
             const SizedBox(height: 16),
+
+            // Nút lấy Kế hoạch chi tiêu
             ElevatedButton(
               onPressed: _getSpendingPlan,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-              child: const Text("Get My Budget Plan", style: TextStyle(color: Colors.white)),
-            ),
-            if (_planResult.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text(_planResult, style: const TextStyle(color: Colors.black)),
+              child: const Text(
+                "Xem Kế Hoạch Chi Tiêu",
+                style: TextStyle(color: Colors.white),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Hiển thị kết quả AI
+            if (_planResult.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _planResult,
+                  style: const TextStyle(color: Colors.black),
+                ),
+              ),
+
+            // Các gợi ý prompts (nếu có)
+            if (_suggestedPrompts.isNotEmpty) ...[
+              const Divider(),
+              ..._suggestedPrompts.map((prompt) => ListTile(title: Text(prompt))),
+            ],
           ],
         ),
       ),

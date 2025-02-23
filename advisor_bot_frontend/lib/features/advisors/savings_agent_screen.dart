@@ -13,25 +13,25 @@ class SavingsAgentScreen extends StatefulWidget {
 class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
   final TextEditingController _goalController = TextEditingController();
   final TextEditingController _monthsController = TextEditingController();
-  String _savingsPlan = "";
-  String _motivationalTips = "";
-  bool _isLoading = false; // ✅ Added loading state
 
-  /// ✅ **Fetch savings plan from backend**
+  String _monthlySavingText = "";
+  String _motivationalTips = "";
+  bool _isLoading = false;
+
   Future<void> _generateSavingsPlan() async {
     final double? goalAmount = double.tryParse(_goalController.text);
     final int? months = int.tryParse(_monthsController.text);
 
     if (goalAmount == null || goalAmount <= 0 || months == null || months <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid goal amount and duration.")),
+        const SnackBar(content: Text("Vui lòng nhập số tiền mục tiêu và số tháng hợp lệ.")),
       );
       return;
     }
 
     setState(() {
       _isLoading = true;
-      _savingsPlan = "";
+      _monthlySavingText = "";
       _motivationalTips = "";
     });
 
@@ -42,23 +42,32 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
       final response = await http.post(
         apiUrl,
         headers: {"Content-Type": "application/json"},
-        body: json.encode({"goal_amount": goalAmount, "months": months}), // ✅ Fixed payload
+        body: json.encode({
+          "goal_amount": goalAmount,
+          "months": months,
+        }),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
+        // Convert to a more readable format (VNĐ)
+        double monthlySavings = data["monthly_savings"]?.toDouble() ?? 0;
+        String tips = data["motivational_tips"] ?? "Hãy kiên trì để đạt mục tiêu!";
+
         setState(() {
-          _savingsPlan = "Save \${data['monthly_savings'].toStringAsFixed(2)} USD per month.";
-          _motivationalTips = data["motivational_tips"] ?? "Stay consistent and reach your goal!";
+          _monthlySavingText =
+              "Mỗi tháng nên tiết kiệm: ${monthlySavings.toStringAsFixed(0)} VNĐ.";
+          _motivationalTips = tips;
         });
       } else {
         setState(() {
-          _savingsPlan = "Server error: ${response.body}";
+          _monthlySavingText = "Lỗi máy chủ: ${response.body}";
         });
       }
     } catch (e) {
       setState(() {
-        _savingsPlan = "Network error: $e";
+        _monthlySavingText = "Lỗi kết nối: $e";
       });
     } finally {
       setState(() {
@@ -70,7 +79,7 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ Standardized light theme
+      backgroundColor: Colors.white, // Giao diện sáng
       appBar: AppBar(
         title: Text(widget.agentName, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -83,47 +92,54 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Savings Goal Amount:",
+              "Số Tiền Mục Tiêu (VNĐ):",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             TextField(
               controller: _goalController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                hintText: "Enter goal amount in USD",
+                hintText: "Nhập số tiền bạn muốn tiết kiệm",
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
 
             const Text(
-              "Duration (months):",
+              "Số Tháng Dự Kiến:",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             TextField(
               controller: _monthsController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                hintText: "Enter duration in months",
+                hintText: "Nhập số tháng",
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
 
-            ElevatedButton(
-              onPressed: _isLoading ? null : _generateSavingsPlan,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+            // Nút Lấy Kế Hoạch
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _generateSavingsPlan,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("Xem Kế Hoạch Tiết Kiệm", style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
-              child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white) // ✅ Show loading
-                  : const Text("Generate Plan", style: TextStyle(color: Colors.white)),
             ),
-
             const SizedBox(height: 16),
 
-            if (_savingsPlan.isNotEmpty)
+            // Kết quả
+            if (_monthlySavingText.isNotEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12.0),
@@ -134,19 +150,22 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "**Savings Plan:**",
+                    const Text(
+                      "Kế Hoạch Tiết Kiệm:",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    Text(_savingsPlan, style: const TextStyle(fontSize: 16)),
+                    Text(_monthlySavingText, style: const TextStyle(fontSize: 16)),
 
                     const SizedBox(height: 8),
 
-                    Text(
-                      "**Motivational Tips:**",
+                    const Text(
+                      "Lời Khuyên Khích Lệ:",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    Text(_motivationalTips, style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
+                    Text(
+                      _motivationalTips,
+                      style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+                    ),
                   ],
                 ),
               ),

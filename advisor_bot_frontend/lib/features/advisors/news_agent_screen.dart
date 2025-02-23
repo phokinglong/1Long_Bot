@@ -19,7 +19,7 @@ class _NewsAgentScreenState extends State<NewsAgentScreen> {
     final String topic = _topicController.text.trim();
     if (topic.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a topic.")),
+        const SnackBar(content: Text("Vui lòng nhập chủ đề.")),
       );
       return;
     }
@@ -39,16 +39,16 @@ class _NewsAgentScreenState extends State<NewsAgentScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          _newsSummary = data["analysis"] ?? "No news summary available.";
+          _newsSummary = data["analysis"] ?? "Chưa có thông tin về chủ đề này.";
         });
       } else {
         setState(() {
-          _newsSummary = "Error fetching news: ${response.body}";
+          _newsSummary = "Lỗi lấy tin tức: ${response.body}";
         });
       }
     } catch (e) {
       setState(() {
-        _newsSummary = "Connection error: $e";
+        _newsSummary = "Lỗi kết nối: $e";
       });
     } finally {
       setState(() => _isLoading = false);
@@ -70,13 +70,13 @@ class _NewsAgentScreenState extends State<NewsAgentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Enter a topic for financial news:",
+              "Nhập chủ đề tin tức tài chính:",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             TextField(
               controller: _topicController,
               decoration: const InputDecoration(
-                hintText: "E.g. stocks, crypto, inflation...",
+                hintText: "Ví dụ: cổ phiếu, tiền ảo, lạm phát...",
                 border: OutlineInputBorder(),
               ),
             ),
@@ -84,8 +84,8 @@ class _NewsAgentScreenState extends State<NewsAgentScreen> {
 
             ElevatedButton(
               onPressed: _fetchNews,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              child: const Text("Fetch Latest News"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+              child: const Text("Xem Tin Tức Mới Nhất", style: TextStyle(color: Colors.white)),
             ),
 
             const SizedBox(height: 16),

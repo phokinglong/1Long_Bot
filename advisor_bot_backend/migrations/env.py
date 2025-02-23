@@ -16,7 +16,7 @@ from config.settings import settings
 # Import all models to be recognized by Alembic
 from app.models.spending import Income, Expense
 from app.models.savings import SavingsPlan
-from app.models.investment import Investment
+from app.models.investment import InvestmentPortfolio, Asset, AssetType
 from app.models.news import News
 
 # Alembic Config object

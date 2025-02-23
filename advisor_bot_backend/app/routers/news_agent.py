@@ -5,14 +5,15 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import openai
 
-# Load environment variables
+from fastapi.responses import JSONResponse  # For UTF-8 response
+
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
-# Ensure OpenAI API key is set
+# Đảm bảo đã thiết lập OPENAI_API_KEY
 openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
-    raise RuntimeError("OpenAI API key is missing! Set OPENAI_API_KEY in your environment.")
+    raise RuntimeError("Thiếu OpenAI API key! Vui lòng đặt OPENAI_API_KEY trong biến môi trường.")
 
 router = APIRouter()
 
@@ -20,50 +21,59 @@ class NewsRequest(BaseModel):
     topic: str
 
 @router.post("/news")
-async def get_financial_news(request: NewsRequest):
+async def get_financial_news(request: NewsRequest) -> JSONResponse:
     """
     POST /api/news
-    Expects JSON: { "topic": "stocks" }
-    Returns: { "analysis": "...AI news summary..." }
+    Dữ liệu JSON cần: { "topic": "cổ phiếu" }
+    Trả về: { "analysis": "...Phân tích tin tức từ AI (tiếng Việt)..." }
     """
 
     if not request.topic.strip():
         raise HTTPException(
             status_code=400,
-            detail="Please provide a valid topic for news."
+            detail="Vui lòng nhập chủ đề hợp lệ."
         )
 
+    # Tin nhắn người dùng (tiếng Việt)
     user_message = (
-        f"I want a short analysis of recent financial news related to {request.topic}. "
-        "Keep it concise and highlight any major trends."
+        f"Tôi muốn bản phân tích ngắn gọn về tin tức tài chính gần đây liên quan đến '{request.topic}'. "
+        "Hãy ngắn gọn, nêu những xu hướng chính và phản hồi 100% bằng tiếng Việt."
     )
 
     try:
-        response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
+        # Sử dụng ChatCompletion với openai>=1.0.0
+        ai_response = openai.chat.completions.create(
+            model="gpt-4-turbo",  # Hoặc "gpt-4" nếu có quyền
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "You are 'Cộng sự Tin tức', an AI specialized in "
-                        "financial news and market trends. Provide short, "
-                        "clear summaries of the current news on the requested topic."
+                        "Bạn là 'Cộng sự Tin tức', một AI chuyên về tin tức tài chính, "
+                        "xu hướng thị trường. Trả lời bằng tiếng Việt, súc tích, rõ ràng."
                     )
                 },
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=400,
+            max_tokens=1000,
             temperature=0.7
         )
 
-        # Ensure response structure is valid
-        if response.choices and len(response.choices) > 0:
-            ai_reply = response.choices[0].message.content
+        # Nếu API trả về bình thường
+        if ai_response.choices and len(ai_response.choices) > 0:
+            raw_reply = ai_response.choices[0].message.content.strip()
+            # Encode/Decode để đảm bảo UTF-8
+            ai_reply = raw_reply.encode("utf-8", "replace").decode("utf-8", "replace")
         else:
-            ai_reply = "No response from AI."
+            ai_reply = "Không nhận được phản hồi từ AI."
 
-        return {"analysis": ai_reply}
+        return JSONResponse(
+            content={"analysis": ai_reply},
+            media_type="application/json; charset=utf-8"
+        )
 
     except Exception as e:
-        logging.exception("OpenAI error occurred in news_agent")
-        raise HTTPException(status_code=500, detail="AI generation failed. Please try again later.")
+        logging.exception("Đã xảy ra lỗi khi gọi OpenAI trong news_agent")
+        raise HTTPException(
+            status_code=500,
+            detail="Không thể lấy tin tức từ AI. Thử lại sau."
+        ) from e

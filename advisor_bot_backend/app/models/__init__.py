@@ -2,5 +2,5 @@
 
 from .spending import Income, Expense
 from .savings import SavingsPlan
-from .investment import Investment
+from .investment import InvestmentPortfolio, Asset, AssetType
 from .news import News
