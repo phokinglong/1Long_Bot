@@ -1,17 +1,18 @@
-# app/routers/news_agent.py
-
 import os
 import logging
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import openai
 
+# Load environment variables
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
+# Ensure OpenAI API key is set
 openai.api_key = os.getenv("OPENAI_API_KEY")
+if not openai.api_key:
+    raise RuntimeError("OpenAI API key is missing! Set OPENAI_API_KEY in your environment.")
 
 router = APIRouter()
 
@@ -39,7 +40,7 @@ async def get_financial_news(request: NewsRequest):
 
     try:
         response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",  # or 'gpt-4'
+            model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system",
@@ -54,9 +55,15 @@ async def get_financial_news(request: NewsRequest):
             max_tokens=400,
             temperature=0.7
         )
-        ai_reply = response.choices[0].message.content
+
+        # Ensure response structure is valid
+        if response.choices and len(response.choices) > 0:
+            ai_reply = response.choices[0].message.content
+        else:
+            ai_reply = "No response from AI."
+
         return {"analysis": ai_reply}
 
     except Exception as e:
         logging.exception("OpenAI error occurred in news_agent")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="AI generation failed. Please try again later.")

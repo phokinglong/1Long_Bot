@@ -1,77 +1,80 @@
-# app/routers/savings_agent.py
-
 import os
 import logging
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from dotenv import load_dotenv
+from sqlalchemy.orm import Session
 import openai
+from dotenv import load_dotenv
+from app.database import get_db
+from app.models.savings import SavingsPlan
 
-# 1. Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
-# 2. Set up logging
+# Logging
 logging.basicConfig(level=logging.INFO)
 
-# 3. Set openai.api_key using env variable
+# Set OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 router = APIRouter()
 
-# 4. Define your Pydantic model
+# Request Model
 class SavingsRequest(BaseModel):
     goal_amount: float
     months: int
 
+# Response Model
+class SavingsResponse(BaseModel):
+    goal_amount: float
+    months: int
+    motivational_tips: str
+
 @router.post("/savings")
-async def create_savings_plan(request: SavingsRequest):
+async def create_savings_plan(request: SavingsRequest, db: Session = Depends(get_db)):
     """
-    POST /api/savings
-    Expects JSON: { "goal_amount": 5000, "months": 10 }
-    Returns: { "plan": "...AI response..." }
+    Create a savings plan, store it in DB, and return the AI-generated response.
     """
-
-    # Debug logs to confirm the key is set
-    logging.warning("OpenAI key from env: %s", os.getenv("OPENAI_API_KEY"))
-    logging.warning("openai.api_key in code: %s", openai.api_key)
-
     if request.goal_amount <= 0 or request.months <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="goal_amount and months must be positive."
-        )
+        raise HTTPException(status_code=400, detail="Goal amount and months must be positive.")
 
+    monthly_savings = request.goal_amount / request.months
     user_message = (
-        f"I have a savings goal of {request.goal_amount} USD in {request.months} months. "
-        "Please calculate how much I need to save each month and give me 1-2 motivational tips."
+        f"I want to save {request.goal_amount} USD in {request.months} months. "
+        f"How much should I save each month? Give me 1-2 motivational tips."
     )
 
     try:
-        # NOTE: The new openai library uses openai.chat.completions.create(...)
-        # instead of openai.ChatCompletion.create(...)
         response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+            model="gpt-3.5-turbo",
             messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are 'Cộng sự Tích lũy', a friendly savings advisor. "
-                        "Give a concise monthly saving plan, plus a couple motivational tips."
-                    )
-                },
+                {"role": "system", "content": "You are a friendly savings advisor."},
                 {"role": "user", "content": user_message},
             ],
-            max_tokens=300,
+            max_tokens=150,
             temperature=0.7
         )
 
-        # Access the AI's reply
-        ai_reply = response.choices[0].message.content 
-        return {"plan": ai_reply}
+        motivational_tips = response.choices[0].message.content.strip()
+
+        # Store savings plan in the database
+        savings_plan = SavingsPlan(
+            goal_amount=request.goal_amount,
+            months=request.months,
+            monthly_savings=monthly_savings,
+            motivational_tips=motivational_tips
+        )
+        db.add(savings_plan)
+        db.commit()
+        db.refresh(savings_plan)
+
+        return {
+            "goal_amount": savings_plan.goal_amount,
+            "months": savings_plan.months,
+            "monthly_savings": savings_plan.monthly_savings,
+            "motivational_tips": savings_plan.motivational_tips
+        }
 
     except Exception as e:
-        # Log the full traceback for debugging
         logging.exception("OpenAI error occurred")
-        # Return the actual error message in the response to see what's going on
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail=str(e))

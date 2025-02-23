@@ -1,9 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-# Explicitly specify the path to .env
-dotenv_path = os.path.join(os.path.dirname(__file__), "../.env")
-load_dotenv(dotenv_path)
+# Load environment variables
+load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-print("Loaded DATABASE_URL:", DATABASE_URL)
+class Settings:
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:1long123!@localhost/financial_bot")
+
+settings = Settings()

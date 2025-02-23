@@ -1,4 +1,6 @@
 # This file ensures 'models' is recognized as a package
-from .agents import Agent
-from .knowledge_bases import KnowledgeBase
-from .features import Feature
+
+from .spending import Income, Expense
+from .savings import SavingsPlan
+from .investment import Investment
+from .news import News
