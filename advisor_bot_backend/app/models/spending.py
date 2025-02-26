@@ -1,16 +1,21 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from app.database import Base
 from datetime import datetime
+from app.database import Base
 
 class Income(Base):
     __tablename__ = "income"
 
     id = Column(Integer, primary_key=True, index=True)
     monthly_income = Column(Float, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # <-- NEW
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    expenses = relationship("Expense", back_populates="income", cascade="all, delete-orphan")
+    expenses = relationship(
+        "Expense",
+        back_populates="income",
+        cascade="all, delete-orphan"
+    )
 
 class Expense(Base):
     __tablename__ = "expenses"

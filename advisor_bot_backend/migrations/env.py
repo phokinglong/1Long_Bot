@@ -18,6 +18,7 @@ from app.models.spending import Income, Expense
 from app.models.savings import SavingsPlan
 from app.models.investment import InvestmentPortfolio, Asset, AssetType
 from app.models.news import News
+from app.models.user import User
 
 # Alembic Config object
 config = context.config

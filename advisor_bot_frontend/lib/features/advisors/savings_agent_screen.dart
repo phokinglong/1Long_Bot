@@ -11,20 +11,27 @@ class SavingsAgentScreen extends StatefulWidget {
 }
 
 class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
-  final TextEditingController _goalController = TextEditingController();
+  final TextEditingController _goalNameController = TextEditingController();
+  final TextEditingController _goalAmountController = TextEditingController();
   final TextEditingController _monthsController = TextEditingController();
 
-  String _monthlySavingText = "";
-  String _motivationalTips = "";
+  double _desiredReturnRate = 0.05; // 5% as default
+
   bool _isLoading = false;
 
+  // Results
+  String _allocationResult = "";
+  String _monthlySavingText = "";
+  String _aiAdvice = "";
+
   Future<void> _generateSavingsPlan() async {
-    final double? goalAmount = double.tryParse(_goalController.text);
+    final String goalName = _goalNameController.text.trim();
+    final double? goalAmount = double.tryParse(_goalAmountController.text);
     final int? months = int.tryParse(_monthsController.text);
 
-    if (goalAmount == null || goalAmount <= 0 || months == null || months <= 0) {
+    if (goalName.isEmpty || goalAmount == null || goalAmount <= 0 || months == null || months <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng nhập số tiền mục tiêu và số tháng hợp lệ.")),
+        const SnackBar(content: Text("Vui lòng nhập đầy đủ thông tin (Mục tiêu, Số tiền, Số tháng).")),
       );
       return;
     }
@@ -32,33 +39,36 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
     setState(() {
       _isLoading = true;
       _monthlySavingText = "";
-      _motivationalTips = "";
+      _allocationResult = "";
+      _aiAdvice = "";
     });
 
     const String baseUrl = "http://127.0.0.1:8000";
     final Uri apiUrl = Uri.parse("$baseUrl/api/savings");
 
+    // Build request
+    final requestBody = {
+      "goal_name": goalName,
+      "goal_amount": goalAmount,
+      "months": months,
+      "desired_return_rate": _desiredReturnRate, 
+    };
+
     try {
       final response = await http.post(
         apiUrl,
         headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "goal_amount": goalAmount,
-          "months": months,
-        }),
+        body: json.encode(requestBody),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        // Convert to a more readable format (VNĐ)
-        double monthlySavings = data["monthly_savings"]?.toDouble() ?? 0;
-        String tips = data["motivational_tips"] ?? "Hãy kiên trì để đạt mục tiêu!";
-
         setState(() {
-          _monthlySavingText =
-              "Mỗi tháng nên tiết kiệm: ${monthlySavings.toStringAsFixed(0)} VNĐ.";
-          _motivationalTips = tips;
+          _monthlySavingText = 
+              "Mỗi tháng cần tiết kiệm khoảng ${data["monthly_savings"]} VNĐ";
+          _allocationResult = 
+              "Phân bổ danh mục: ${data["portfolio_allocation"]}";
+          _aiAdvice = data["ai_advice"] ?? "";
         });
       } else {
         setState(() {
@@ -70,16 +80,14 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
         _monthlySavingText = "Lỗi kết nối: $e";
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Giao diện sáng
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(widget.agentName, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -91,23 +99,39 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Goal Name
             const Text(
-              "Số Tiền Mục Tiêu (VNĐ):",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              "Tên Mục Tiêu:",
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             TextField(
-              controller: _goalController,
-              keyboardType: TextInputType.number,
+              controller: _goalNameController,
               decoration: const InputDecoration(
-                hintText: "Nhập số tiền bạn muốn tiết kiệm",
+                hintText: "Ví dụ: Mua xe hơi, Quỹ đám cưới...",
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
 
+            // Goal Amount
+            const Text(
+              "Số Tiền Mục Tiêu (VNĐ):",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextField(
+              controller: _goalAmountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: "Nhập số tiền muốn tiết kiệm",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Months
             const Text(
               "Số Tháng Dự Kiến:",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             TextField(
               controller: _monthsController,
@@ -119,7 +143,26 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Nút Lấy Kế Hoạch
+            // Desired Return Rate
+            const Text(
+              "Mức Lợi Suất Mong Muốn (%/năm):",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Slider(
+              value: _desiredReturnRate,
+              min: 0.0,
+              max: 0.20,
+              divisions: 20,
+              label: "${(_desiredReturnRate * 100).toStringAsFixed(1)}%",
+              onChanged: (val) {
+                setState(() => _desiredReturnRate = val);
+              },
+            ),
+            Text("Hiện tại: ${( _desiredReturnRate * 100 ).toStringAsFixed(1)}% / năm"),
+
+            const SizedBox(height: 16),
+
+            // Generate Plan Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -127,18 +170,15 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Xem Kế Hoạch Tiết Kiệm", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    : const Text("Xem Kế Hoạch", style: TextStyle(color: Colors.white)),
               ),
             ),
             const SizedBox(height: 16),
 
-            // Kết quả
+            // Results
             if (_monthlySavingText.isNotEmpty)
               Container(
                 width: double.infinity,
@@ -150,22 +190,13 @@ class _SavingsAgentScreenState extends State<SavingsAgentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Kế Hoạch Tiết Kiệm:",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
                     Text(_monthlySavingText, style: const TextStyle(fontSize: 16)),
-
                     const SizedBox(height: 8),
-
-                    const Text(
-                      "Lời Khuyên Khích Lệ:",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      _motivationalTips,
-                      style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
-                    ),
+                    if (_allocationResult.isNotEmpty)
+                      Text(_allocationResult, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 8),
+                    if (_aiAdvice.isNotEmpty)
+                      Text("Lời khuyên AI:\n$_aiAdvice", style: const TextStyle(fontSize: 14)),
                   ],
                 ),
               ),

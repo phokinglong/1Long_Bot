@@ -117,6 +117,7 @@ class _SpendingAgentScreenState extends State<SpendingAgentScreen> {
         apiUrl,
         headers: {"Content-Type": "application/json"},
         body: json.encode({
+          "user_id":1,
           "monthly_income": monthlyIncome,
           "expenses": expenses,
         }),

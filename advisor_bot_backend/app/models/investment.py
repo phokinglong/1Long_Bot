@@ -1,7 +1,7 @@
 # app/models/investment.py
 
 import enum
-from sqlalchemy import Column, Integer, Float, String, Enum, Text, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -15,6 +15,8 @@ class InvestmentPortfolio(Base):
     __tablename__ = "investment_portfolios"
     id = Column(Integer, primary_key=True, index=True)
     risk_tolerance = Column(String(50), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # NEW field linking to a user
+
     # Relationship to assets
     assets = relationship("Asset", back_populates="portfolio", cascade="all, delete-orphan")
 
@@ -26,3 +28,6 @@ class Asset(Base):
     value = Column(Float, nullable=False)
 
     portfolio = relationship("InvestmentPortfolio", back_populates="assets")
+
+
+

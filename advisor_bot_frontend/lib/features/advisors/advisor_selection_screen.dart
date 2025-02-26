@@ -7,6 +7,8 @@ import 'package:advisor_bot/features/advisors/spending_agent_screen.dart';
 import 'package:advisor_bot/features/advisors/savings_agent_screen.dart';
 import 'package:advisor_bot/features/advisors/investment_agent_screen.dart';
 import 'package:advisor_bot/features/advisors/news_agent_screen.dart';
+import 'package:advisor_bot/features/advisors/research_agent_screen.dart';
+
 
 class AdvisorSelectionScreen extends StatefulWidget {
   const AdvisorSelectionScreen({super.key});
@@ -85,115 +87,158 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
         'icon': Icons.newspaper,
         'color': Colors.purple
       },
+      {
+        'id': 5,
+        'name': 'Cộng sự "Nghiên cứu"',
+        'description': 'Tra cứu cổ phiếu, báo cáo tài chính, v.v.',
+        'icon': Icons.search,
+        'color': Colors.blueGrey
+      },
     ];
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text(
-          'Chọn Cộng sự AI của bạn',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: advisors.map((advisor) {
-            return Card(
-              color: Colors.black,
-              elevation: 5,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: advisor['color']!, width: 2),
-              ),
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: advisor['color']!.withOpacity(0.2),
-                  child: Icon(advisor['icon'], color: advisor['color']),
-                ),
-                title: Text(
-                  advisor['name'],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+      body: Stack(
+        children: [
+          // ✅ Background Image Overlay
+          Positioned.fill(
+            child: Image.asset(
+              "assets/images/background.png", // Make sure the image exists in assets
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // ✅ Content Overlay
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                const Text(
+                  'Chọn Cộng sự AI của bạn',
+                  style: TextStyle(
                     color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                subtitle: Text(
-                  advisor['description'],
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                trailing: ElevatedButton(
-                  onPressed: () async {
-                    int agentId = advisor['id'];
-                    await sendAdvisorSelection(agentId);
+                const SizedBox(height: 20),
 
-                    if (!mounted) return; // ✅ Prevents context error
+                Expanded(
+                  child: ListView(
+                    children: advisors.map((advisor) {
+                      return Card(
+                        color: Colors.black.withOpacity(0.85), // Darkened transparency
+                        elevation: 5,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: advisor['color']!, width: 2),
+                        ),
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: advisor['color']!.withOpacity(0.2),
+                            child: Icon(advisor['icon'], color: advisor['color']),
+                          ),
+                          title: Text(
+                            advisor['name'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                          subtitle: Text(
+                            advisor['description'],
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          trailing: ElevatedButton(
+                            onPressed: () async {
+                              int agentId = advisor['id'];
+                              await sendAdvisorSelection(agentId);
 
-                    switch (agentId) {
-                      case 1:
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                SpendingAgentScreen(agentName: advisor['name']),
+                              if (!mounted) return; // ✅ Prevents context error
+
+                              switch (agentId) {
+                                case 1:
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SpendingAgentScreen(agentName: advisor['name']),
+                                    ),
+                                  );
+                                  break;
+                                case 2:
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SavingsAgentScreen(agentName: advisor['name']),
+                                    ),
+                                  );
+                                  break;
+                                case 3:
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => InvestmentAgentScreen(agentName: advisor['name']),
+                                    ),
+                                  );
+                                  break;
+                                case 4:
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => NewsAgentScreen(agentName: advisor['name']),
+                                    ),
+                                  );
+                                  break;
+                                case 5:
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ResearchAgentScreen(agentName: advisor['name']),
+                                    ),
+                                  );
+                                    break;
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              side: BorderSide(color: advisor['color']!, width: 2),
+                            ),
+                            child: const Text(
+                              'Chọn',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        );
-                        break;
-                      case 2:
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                SavingsAgentScreen(agentName: advisor['name']),
-                          ),
-                        );
-                        break;
-                      case 3:
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                InvestmentAgentScreen(agentName: advisor['name']),
-                          ),
-                        );
-                        break;
-                      case 4:
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                NewsAgentScreen(agentName: advisor['name']),
-                          ),
-                        );
-                        break;
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    side: BorderSide(color: advisor['color']!, width: 2),
-                  ),
-                  child: const Text(
-                    'Chọn',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
-              ),
-            );
-          }).toList(),
-        ),
+              ],
+            ),
+          ),
+        ],
+      ),
+
+      // ✅ Floating Action Button for Opening Onboarding
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.white,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          );
+        },
+        child: const Icon(Icons.settings, color: Colors.black),
       ),
     );
   }

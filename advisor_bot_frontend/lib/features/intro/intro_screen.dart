@@ -24,7 +24,7 @@ class IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin 
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
-    );
+    )..forward(); // 🚀 **Ensures first screen text animates immediately!**
 
     /// 🔵 **Fade-In Animation**
     _fadeAnimation = CurvedAnimation(
@@ -63,27 +63,32 @@ class IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin 
             },
             children: [
               IntroPage(
-                image: "assets/images/intro_1.webp",
-                title: "Cộng sự Chi tiêu",
-                description: "Quản lý chi tiêu cá nhân và gia đình",
+                image: "assets/images/intro_1.png",
+                title: "Tối Đa Hóa Tiềm Năng Tài Chính Của Bạn",
+                description:
+                    "Cộng sự AI của 1Long cá nhân hóa các giải pháp đầu tư tích lũy, theo tiềm lực tài chính và mục tiêu của bạn.",
+                fadeAnimation: _fadeAnimation,
+                forceVisible: true, // 🚀 **Ensures first page is always visible**
+              ),
+              IntroPage(
+                image: "assets/images/intro_2.png",
+                title: "Đầu Tư Thông Minh, Từ Phân Tích Chuyên Sâu",
+                description:
+                    "Vượt xa các dữ liệu bề nổi, Cộng sự AI của 1Long phân tích sâu thị trường, cân nhắc khả năng và mục tiêu tài chính của bạn để đưa ra các gợi ý đầu tư tối ưu nhất.",
                 fadeAnimation: _fadeAnimation,
               ),
               IntroPage(
-                image: "assets/images/intro_2.webp",
-                title: "Cộng sự Tích lũy",
-                description: "Tích lũy và bảo hiểm cá nhân",
+                image: "assets/images/intro_3.png",
+                title: "Cập Nhật Tin Tức Tài Chính",
+                description:
+                    "Có cộng sự AI của 1Long liên tục tổng hợp tin tức tài chính, bạn sẽ dễ dàng nắm trọn mọi thông tin quan trọng trên thị trường.",
                 fadeAnimation: _fadeAnimation,
               ),
               IntroPage(
-                image: "assets/images/intro_3.webp",
-                title: "Cộng sự Đầu tư",
-                description: "Tư duy, chiến lược đầu tư tài chính",
-                fadeAnimation: _fadeAnimation,
-              ),
-              IntroPage(
-                image: "assets/images/intro_1.webp",
-                title: "Cộng sự Tin tức",
-                description: "Phân tích tin tức tài chính, thị trường",
+                image: "assets/images/intro_4.png",
+                title: "Thiết Kế Lộ Trình Tích Lũy Bền Vững",
+                description:
+                    "Gợi ý các giải pháp tích lũy linh hoạt, an toàn và tối ưu nhất, Cộng sự AI của 1Long giúp bạn vững vàng phát triển tài chính và giảm thiểu ảnh hưởng từ các biến động thị trường.",
                 fadeAnimation: _fadeAnimation,
               ),
             ],
@@ -91,7 +96,7 @@ class IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin 
 
           /// ✅ **Smooth Page Indicator**
           Positioned(
-            bottom: 100,
+            bottom: 110,
             left: 0,
             right: 0,
             child: Center(
@@ -128,17 +133,18 @@ class IntroScreenState extends State<IntroScreen> with TickerProviderStateMixin 
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.9),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: const Color(0xFF1A73E8), // Modern blue color
               ),
               child: Text(
-                currentPage == 3 ? "Get Started" : "Next",
-                style: const TextStyle(
-                  color: Colors.black,
+                currentPage == 3 ? "Bắt đầu" : "Tiếp theo",
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -155,6 +161,7 @@ class IntroPage extends StatelessWidget {
   final String title;
   final String description;
   final Animation<double> fadeAnimation;
+  final bool forceVisible;
 
   const IntroPage({
     super.key,
@@ -162,6 +169,7 @@ class IntroPage extends StatelessWidget {
     required this.title,
     required this.description,
     required this.fadeAnimation,
+    this.forceVisible = false, // 🚀 Ensures first page always loads text!
   });
 
   @override
@@ -184,8 +192,8 @@ class IntroPage extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.4),
-                  Colors.black.withOpacity(0.7),
+                  Colors.black.withOpacity(0.6),
+                  Colors.black.withOpacity(0.8),
                 ],
               ),
             ),
@@ -196,18 +204,19 @@ class IntroPage extends StatelessWidget {
         Align(
           alignment: Alignment.bottomCenter,
           child: FadeTransition(
-            opacity: fadeAnimation,
+            opacity: forceVisible ? AlwaysStoppedAnimation(1.0) : fadeAnimation,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-              margin: const EdgeInsets.only(bottom: 130), // ✅ Adjusted for better placement
+              width: MediaQuery.of(context).size.width * 0.9,
+              margin: const EdgeInsets.only(bottom: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
+                color: Colors.black.withOpacity(0.85), // Darker background for readability
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withOpacity(0.4),
                     blurRadius: 12,
-                    spreadRadius: 5,
+                    spreadRadius: 2,
                   ),
                 ],
               ),
@@ -216,20 +225,20 @@ class IntroPage extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.beVietnamPro(
                       fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     description,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.beVietnamPro(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black54,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white70,
                     ),
                     textAlign: TextAlign.center,
                   ),

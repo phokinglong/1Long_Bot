@@ -59,7 +59,7 @@ def create_spending_plan(
     openai.api_key = openai_api_key
 
     # 2. Lưu bản ghi Income (thu nhập)
-    income_record = Income(monthly_income=request.monthly_income)
+    income_record = Income(monthly_income=request.monthly_income,user_id=request.user_id)
     db.add(income_record)
     db.commit()
     db.refresh(income_record)

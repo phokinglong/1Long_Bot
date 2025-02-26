@@ -4,3 +4,6 @@ from .spending import Income, Expense
 from .savings import SavingsPlan
 from .investment import InvestmentPortfolio, Asset, AssetType
 from .news import News
+from .user import User
+from .research import MetricType,ResearchQuery
+

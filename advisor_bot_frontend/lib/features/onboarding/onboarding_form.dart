@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:advisor_bot/features/onboarding/onboarding_controller.dart';
 
 class OnboardingForm extends StatefulWidget {
@@ -25,24 +26,33 @@ class OnboardingFormState extends State<OnboardingForm> {
     _loadUserData();
   }
 
+  /// ✅ **Load saved user data from SharedPreferences**
   Future<void> _loadUserData() async {
-    final userData = await OnboardingController.getUserData();
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      investingExperience = userData['experienceLevel'] ?? investingExperience;
-      financialGoal = userData['goal'] ?? financialGoal;
+      investingExperience = prefs.getString('investingExperience') ?? "Beginner";
+      financialGoal = prefs.getString('financialGoal') ?? "Wealth Growth";
+      netWorth = prefs.getString('netWorth') ?? "100M - 500M VND";
+      personalizedAdvice = prefs.getBool('personalizedAdvice') ?? false;
+      riskTolerance = prefs.getString('riskTolerance') ?? "Moderate";
+      selectedInvestments.clear();
+      selectedInvestments.addAll(prefs.getStringList('selectedInvestments') ?? []);
     });
   }
 
+  /// ✅ **Save user data when form is submitted**
   Future<void> _saveUserData() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await OnboardingController.saveUserData(
-      name: "User",
-      experienceLevel: investingExperience,
-      goal: financialGoal,
-    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('investingExperience', investingExperience);
+    await prefs.setString('financialGoal', financialGoal);
+    await prefs.setString('netWorth', netWorth);
+    await prefs.setBool('personalizedAdvice', personalizedAdvice);
+    await prefs.setString('riskTolerance', riskTolerance);
+    await prefs.setStringList('selectedInvestments', selectedInvestments);
 
-    widget.onComplete();
+    widget.onComplete(); // Call the function to proceed
   }
 
   @override
