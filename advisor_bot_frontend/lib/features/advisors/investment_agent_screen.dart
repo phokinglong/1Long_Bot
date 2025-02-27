@@ -98,64 +98,70 @@ class _InvestmentAgentScreenState extends State<InvestmentAgentScreen> {
   }
 
   // Call the backend to get the investment plan
-  Future<void> _getInvestmentPlan() async {
-    if (_assets.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng thêm ít nhất một tài sản.")),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _totalValue = 0.0;
-      _projectedValue = 0.0;
-      _aiRebalanceAdvice = "";
-      _graphBase64 = "";
-    });
-
-    const String baseUrl = "http://127.0.0.1:8000";
-    final Uri apiUrl = Uri.parse("$baseUrl/api/investment");
-
-    // Convert the selected risk tolerance to English for the backend
-    final String mappedRisk = _riskMap[_selectedRiskToleranceVN] ?? "medium";
-
-    // Build the request body
-    final requestBody = {
-      "risk_tolerance": mappedRisk,
-      "assets": _assets,
-    };
-
-    try {
-      final response = await http.post(
-        apiUrl,
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(requestBody),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          _totalValue = (data["total_value"] ?? 0.0).toDouble();
-          _projectedValue = (data["projected_value"] ?? 0.0).toDouble();
-          _aiRebalanceAdvice = data["ai_rebalance_advice"] ?? "Không có khuyến nghị.";
-          _graphBase64 = data["graph"] ?? "";
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi máy chủ: ${response.body}")),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi kết nối: $e")),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+Future<void> _getInvestmentPlan() async {
+  if (_assets.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Vui lòng thêm ít nhất một tài sản.")),
+    );
+    return;
   }
+
+  setState(() {
+    _isLoading = true;
+    _totalValue = 0.0;
+    _projectedValue = 0.0;
+    _aiRebalanceAdvice = "";
+    _graphBase64 = "";
+  });
+
+  const String baseUrl = "http://127.0.0.1:8000";
+  final Uri apiUrl = Uri.parse("$baseUrl/api/investment");
+
+  final String mappedRisk = _riskMap[_selectedRiskToleranceVN] ?? "medium";
+
+  final requestBody = {
+    "user_id": 1,  // Confirm this is being sent correctly
+    "risk_tolerance": mappedRisk,
+    "assets": _assets,
+  };
+
+  // ✅ Debugging: Print the request body
+  print("📤 Sending Request: ${jsonEncode(requestBody)}");
+
+  try {
+    final response = await http.post(
+      apiUrl,
+      headers: {"Content-Type": "application/json"},
+      body: json.encode(requestBody),
+    );
+
+    // ✅ Debugging: Print response status and body
+    print("📥 Response Status: ${response.statusCode}");
+    print("📥 Response Body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        _totalValue = (data["total_value"] ?? 0.0).toDouble();
+        _projectedValue = (data["projected_value"] ?? 0.0).toDouble();
+        _aiRebalanceAdvice = data["ai_rebalance_advice"] ?? "Không có khuyến nghị.";
+        _graphBase64 = data["graph"] ?? "";
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi máy chủ: ${response.body}")),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Lỗi kết nối: $e")),
+    );
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {

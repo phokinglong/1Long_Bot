@@ -26,6 +26,7 @@ class AssetInput(BaseModel):
     value: float
 
 class InvestmentRequest(BaseModel):
+    user_id: int  # ✅ Added user_id to ensure it is provided
     risk_tolerance: str
     assets: List[AssetInput]
 
@@ -71,7 +72,7 @@ def generate_growth_graph(assets: List[Asset]) -> str:
     buf.seek(0)
     return base64.b64encode(buf.read()).decode("utf-8")
 
-@router.post("/", response_model=InvestmentResponse)
+@router.post("/investment", response_model=InvestmentResponse)
 async def create_investment_plan(request: InvestmentRequest, db: Session = Depends(get_db)) -> JSONResponse:
     """
     Nhận danh sách tài sản và mức độ rủi ro, tính toán giá trị hiện tại,
@@ -81,8 +82,21 @@ async def create_investment_plan(request: InvestmentRequest, db: Session = Depen
     if not request.assets or not request.risk_tolerance.strip():
         raise HTTPException(status_code=400, detail="Dữ liệu đầu vào không hợp lệ.")
 
-    # Tạo InvestmentPortfolio
-    portfolio = InvestmentPortfolio(risk_tolerance=request.risk_tolerance)
+    # ✅ Validate that user_id is not None
+    if not request.user_id:
+        raise HTTPException(status_code=400, detail="User ID is required.")
+
+    # ✅ Ensure it's an integer
+    try:
+        user_id = int(request.user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format.")
+
+    # ✅ Create InvestmentPortfolio with user_id
+    portfolio = InvestmentPortfolio(
+        user_id=user_id,  # ✅ Ensure user_id is included
+        risk_tolerance=request.risk_tolerance
+    )
     db.add(portfolio)
     db.commit()
     db.refresh(portfolio)

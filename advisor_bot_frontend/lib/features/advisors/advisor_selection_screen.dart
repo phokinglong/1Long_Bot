@@ -8,7 +8,7 @@ import 'package:advisor_bot/features/advisors/savings_agent_screen.dart';
 import 'package:advisor_bot/features/advisors/investment_agent_screen.dart';
 import 'package:advisor_bot/features/advisors/news_agent_screen.dart';
 import 'package:advisor_bot/features/advisors/research_agent_screen.dart';
-
+import 'package:advisor_bot/features/trade_finance_advisor/trade_finance_advisor_screen.dart'; // ✅ Import Trade Finance Advisor
 
 class AdvisorSelectionScreen extends StatefulWidget {
   const AdvisorSelectionScreen({super.key});
@@ -61,38 +61,45 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
     final List<Map<String, dynamic>> advisors = [
       {
         'id': 1,
-        'name': 'Cộng sự "Chi tiêu"',
-        'description': 'Quản lý chi tiêu cá nhân / gia đình.',
+        'name': 'Spending Advisor',
+        'description': 'Manage personal and family expenses.',
         'icon': Icons.account_balance_wallet,
         'color': Colors.blue
       },
       {
         'id': 2,
-        'name': 'Cộng sự "Tích lũy"',
-        'description': 'Tích lũy và bảo hiểm cá nhân.',
+        'name': 'Savings Advisor',
+        'description': 'Personal savings and insurance planning.',
         'icon': Icons.savings,
         'color': Colors.green
       },
       {
         'id': 3,
-        'name': 'Cộng sự "Đầu tư"',
-        'description': 'Chiến lược đầu tư tài chính.',
+        'name': 'Investment Advisor',
+        'description': 'Financial investment strategies.',
         'icon': Icons.trending_up,
         'color': Colors.orange
       },
       {
         'id': 4,
-        'name': 'Cộng sự "Tin tức"',
-        'description': 'Phân tích tin tức tài chính, thị trường.',
+        'name': 'News Advisor',
+        'description': 'Market and financial news analysis.',
         'icon': Icons.newspaper,
         'color': Colors.purple
       },
       {
         'id': 5,
-        'name': 'Cộng sự "Nghiên cứu"',
-        'description': 'Tra cứu cổ phiếu, báo cáo tài chính, v.v.',
+        'name': 'Research Advisor',
+        'description': 'Stock research, financial reports, etc.',
         'icon': Icons.search,
         'color': Colors.blueGrey
+      },
+      {
+        'id': 6, // ✅ New Trade Finance Advisor
+        'name': 'Trade Finance Advisor',
+        'description': 'Trade finance analysis and funding strategies.',
+        'icon': Icons.local_shipping,
+        'color': Colors.teal
       },
     ];
 
@@ -102,7 +109,7 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
           // ✅ Background Image Overlay
           Positioned.fill(
             child: Image.asset(
-              "assets/images/background.png", // Make sure the image exists in assets
+              "assets/images/background.png", // Ensure this image exists
               fit: BoxFit.cover,
             ),
           ),
@@ -114,7 +121,7 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
               children: [
                 const SizedBox(height: 40),
                 const Text(
-                  'Chọn Cộng sự AI của bạn',
+                  'Choose Your AI Advisor',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -128,7 +135,7 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
                   child: ListView(
                     children: advisors.map((advisor) {
                       return Card(
-                        color: Colors.black.withOpacity(0.85), // Darkened transparency
+                        color: Colors.black.withOpacity(0.85),
                         elevation: 5,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -157,49 +164,27 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
                               int agentId = advisor['id'];
                               await sendAdvisorSelection(agentId);
 
-                              if (!mounted) return; // ✅ Prevents context error
+                              if (!mounted) return;
 
                               switch (agentId) {
                                 case 1:
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => SpendingAgentScreen(agentName: advisor['name']),
-                                    ),
-                                  );
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => SpendingAgentScreen(agentName: advisor['name'])));
                                   break;
                                 case 2:
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => SavingsAgentScreen(agentName: advisor['name']),
-                                    ),
-                                  );
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => SavingsAgentScreen(agentName: advisor['name'])));
                                   break;
                                 case 3:
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => InvestmentAgentScreen(agentName: advisor['name']),
-                                    ),
-                                  );
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => InvestmentAgentScreen(agentName: advisor['name'])));
                                   break;
                                 case 4:
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => NewsAgentScreen(agentName: advisor['name']),
-                                    ),
-                                  );
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => NewsAgentScreen(agentName: advisor['name'])));
                                   break;
                                 case 5:
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ResearchAgentScreen(agentName: advisor['name']),
-                                    ),
-                                  );
-                                    break;
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => ResearchAgentScreen(agentName: advisor['name'])));
+                                  break;
+                                case 6: // ✅ New Case for Trade Finance Advisor
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => TradeFinanceAgentScreen()));
+                                  break;
                               }
                             },
                             style: ElevatedButton.styleFrom(
@@ -211,7 +196,7 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
                               side: BorderSide(color: advisor['color']!, width: 2),
                             ),
                             child: const Text(
-                              'Chọn',
+                              'Select',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -227,18 +212,6 @@ class AdvisorSelectionScreenState extends State<AdvisorSelectionScreen> {
             ),
           ),
         ],
-      ),
-
-      // ✅ Floating Action Button for Opening Onboarding
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-          );
-        },
-        child: const Icon(Icons.settings, color: Colors.black),
       ),
     );
   }
